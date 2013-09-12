@@ -303,6 +303,46 @@ static void cmd_scan(char *args) {
         printf("Invalid argument \"%s\"\n", arg);
 }
 
+static void
+connect_result_cb(int conn_id, int status, int client_if, bt_bdaddr_t* bda) {
+
+    if (status != 0) {
+        printf("Could not connect, status: %i\n", status);
+        return;
+    }
+
+    printf("Connected!, conn_id: %d, client_if: %d\n", conn_id, client_if);
+}
+
+static void
+disconnect_result_cb(int conn_id, int status, int client_if, bt_bdaddr_t* bda) {
+
+    printf("Disconnect!, status: %d, client_if: %d, conn_id: %d\n", status,
+                                                            client_if, conn_id);
+}
+
+static void cmd_connect(char *args) {
+
+    int client_if = 666;
+    bt_status_t status;
+    char arg[MAX_LINE_SIZE];
+
+    if (u.gattiface == NULL) {
+        printf("Unable to BLE connect: GATT interface not available\n");
+        return;
+    }
+
+    if (u.adapter_state != BT_STATE_ON) {
+        printf("Unable to connect: Adapter is down\n");
+        return;
+    }
+
+    line_get_str(&args, arg);
+    printf("arg: %s\n", arg);
+
+    connect_result_cb(0, 0, 0, NULL);
+}
+
 /* List of available user commands */
 static const cmd_t cmd_list[] = {
     { "quit", "        Exits", cmd_quit },
@@ -310,6 +350,7 @@ static const cmd_t cmd_list[] = {
     { "disable", "     Disables the Bluetooth adapter", cmd_disable },
     { "discovery", "   Controls discovery of nearby devices", cmd_discovery },
     { "scan", "        Controls BLE scan of nearby devices", cmd_scan },
+    { "connect", "     Create a connection to a remote device", cmd_connect },
     { NULL, NULL, NULL }
 };
 
@@ -342,8 +383,8 @@ static void cmd_process(char *line) {
 static const btgatt_client_callbacks_t gattccbs = {
     NULL, /* register_client_callback */
     scan_result_cb, /* called every time an advertising report is seen */
-    NULL, /* connect_callback */
-    NULL, /* disconnect_callback */
+    connect_result_cb, /* connect_callback */
+    disconnect_result_cb, /* disconnect_callback */
     NULL, /* search_complete_callback */
     NULL, /* search_result_callback */
     NULL, /* get_characteristic_callback */
