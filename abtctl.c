@@ -31,6 +31,8 @@
 #include <hardware/bt_gatt_client.h>
 #include <hardware/hardware.h>
 
+#include "util.h"
+
 #define MAX_LINE_SIZE 64
 
 /* Data that have to be acessable by the callbacks */
@@ -321,11 +323,15 @@ disconnect_result_cb(int conn_id, int status, int client_if, bt_bdaddr_t* bda) {
                                                             client_if, conn_id);
 }
 
+
+
 static void cmd_connect(char *args) {
 
     int client_if = 666;
     bt_status_t status;
     char arg[MAX_LINE_SIZE];
+    bt_bdaddr_t addr;
+    int ret;
 
     if (u.gattiface == NULL) {
         printf("Unable to BLE connect: GATT interface not available\n");
@@ -338,7 +344,14 @@ static void cmd_connect(char *args) {
     }
 
     line_get_str(&args, arg);
-    printf("arg: %s\n", arg);
+
+    ret = str2ba(arg, &addr);
+    if (ret != 0) {
+        printf("Unable to connect: Invalid bluetooth address: %s\n", arg);
+        return;
+    }
+
+    printf("Try connect to: %s\n", arg);
 
     connect_result_cb(0, 0, 0, NULL);
 }
