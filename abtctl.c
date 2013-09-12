@@ -45,7 +45,16 @@ struct userdata {
     bt_state_t adapter_state; /* The adapter is always OFF in the beginning */
     bt_discovery_state_t discovery_state;
     uint8_t scan_state;
+    bool registered;
+    bool connected;
+    int conn_id;
+    int client_if;
 } u;
+
+static bt_uuid_t uuid = {
+    .uu = { 0x1b, 0x1c, 0xb9, 0x2e, 0x0d, 0x2e, 0x4c, 0x45, \
+            0xbb, 0xb9, 0xf4, 0x1b, 0x46, 0x39, 0x23, 0x36 }
+};
 
 /* Prints the command prompt */
 static void cmd_prompt() {
@@ -314,6 +323,23 @@ connect_result_cb(int conn_id, int status, int client_if, bt_bdaddr_t* bda) {
     }
 
     printf("Connected!, conn_id: %d, client_if: %d\n", conn_id, client_if);
+    u.conn_id = conn_id;
+    u.client_if = client_if;
+    u.connected = true;
+}
+
+static void
+register_client_result_cb(int status, int client_if, bt_uuid_t *app_uuid) {
+
+    if (status != BT_STATUS_SUCCESS) {
+        printf("Failed to register client, status: %d\n", status);
+        return;
+    }
+
+    printf("Registered!, client_if: %d\n", client_if);
+
+    u.client_if = client_if;
+    u.registered = true;
 }
 
 static void
@@ -323,11 +349,8 @@ disconnect_result_cb(int conn_id, int status, int client_if, bt_bdaddr_t* bda) {
                                                             client_if, conn_id);
 }
 
-
-
 static void cmd_connect(char *args) {
 
-    int client_if = 666;
     bt_status_t status;
     char arg[MAX_LINE_SIZE];
     bt_bdaddr_t addr;
@@ -351,9 +374,24 @@ static void cmd_connect(char *args) {
         return;
     }
 
+    status = u.gattiface->client->register_client(&uuid);
+    if (status != BT_STATUS_SUCCESS) {
+        printf("Failed to register client, status: %d\n", status);
+        return;
+    }
+
+    sleep(3);
+
+    if (u.registered == false)
+        return;
+
     printf("Try connect to: %s\n", arg);
 
-    connect_result_cb(0, 0, 0, NULL);
+    status = u.gattiface->client->connect(u.client_if, &addr, true);
+    if (status != BT_STATUS_SUCCESS) {
+        printf("Failed to connect, status: %d\n", status);
+        return;
+    }
 }
 
 /* List of available user commands */
@@ -394,7 +432,7 @@ static void cmd_process(char *line) {
 
 /* GATT client callbacks */
 static const btgatt_client_callbacks_t gattccbs = {
-    NULL, /* register_client_callback */
+    register_client_result_cb, /* register_client_callback */
     scan_result_cb, /* called every time an advertising report is seen */
     connect_result_cb, /* connect_callback */
     disconnect_result_cb, /* disconnect_callback */
