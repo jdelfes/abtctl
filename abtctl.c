@@ -379,6 +379,17 @@ disconnect_result_cb(int conn_id, int status, int client_if, bt_bdaddr_t* bda) {
                                                             client_if, conn_id);
 }
 
+void ssp_request_cb(bt_bdaddr_t *remote_bd_addr, bt_bdname_t *bd_name,
+            uint32_t cod, bt_ssp_variant_t pairing_variant, uint32_t pass_key) {
+
+    printf("Remote addr: %02X:%02X:%02X:%02X:%02X:%02X\n",
+           remote_bd_addr->address[0], remote_bd_addr->address[1],
+           remote_bd_addr->address[2], remote_bd_addr->address[3],
+           remote_bd_addr->address[4], remote_bd_addr->address[5]);
+
+    printf("Pass key: %d\n", pass_key);
+}
+
 static void cmd_connect(char *args) {
 
     bt_status_t status;
@@ -597,8 +608,9 @@ static bt_callbacks_t btcbs = {
     NULL, /* remote_device_properties_callback */
     device_found_cb, /* Called for every device found */
     discovery_state_changed_cb, /* Called every time the discovery state changes */
+    //pin_request_cb, /* pin_request_callback */
     NULL, /* pin_request_callback */
-    NULL, /* ssp_request_callback */
+    ssp_request_cb, /* ssp_request_callback */
     bond_state_changed_cb, /* bond_state_changed_callback */
     NULL, /* acl_state_changed_callback */
     thread_event_cb, /* Called when the JVM is associated / dissociated */
@@ -648,6 +660,8 @@ static void bt_init() {
     status = u.btiface->init(&btcbs);
     if (status != BT_STATUS_SUCCESS && status != BT_STATUS_DONE)
         err(4, "Failed to initialize the Bluetooth interface");
+
+    printf("XXXX Bluetooth pin_reply: %p\n", u.btiface->pin_reply);
 }
 
 int main (int argc, char * argv[]) {
