@@ -427,9 +427,16 @@ static void cmd_connect(char *args) {
 static void cmd_pair(char *args) {
 
     char arg[MAX_LINE_SIZE];
+    unsigned arg_pos;
     bt_bdaddr_t addr;
     bt_status_t status;
     int ret;
+    const char* valid_arguments[] = {
+        "create",
+        "cancel",
+        "remove",
+        NULL,
+    };
 
     if (u.adapter_state != BT_STATE_ON) {
         printf("Bluetooth is not enabled\n");
@@ -438,16 +445,51 @@ static void cmd_pair(char *args) {
 
     line_get_str(&args, arg);
 
+    if (arg[0] == 0 || strcmp(arg, "help") == 0) {
+        printf("bond -- Controls BLE bond process\n");
+        printf("Arguments:\n");
+        printf("create <address>   start bond process to address\n");
+        printf("cancel <address>   cancel bond process to address\n");
+        printf("remove <address>   remove bond to address\n");
+        return;
+    }
+
+    arg_pos = str_in_list(valid_arguments, arg);
+    if (str_in_list(valid_arguments, arg) < 0) {
+
+        printf("Invalid argument \"%s\"\n", arg);
+        return;
+    }
+
+    line_get_str(&args, arg);
     ret = str2ba(arg, &addr);
     if (ret != 0) {
         printf("Invalid bluetooth address: %s\n", arg);
         return;
     }
 
-    status = u.btiface->create_bond(&addr);
-    if (status != BT_STATUS_SUCCESS) {
-        printf("Failed to pair\n");
-        return;
+    switch (arg_pos) {
+        case 0:
+           status = u.btiface->create_bond(&addr);
+            if (status != BT_STATUS_SUCCESS) {
+                printf("Failed to create bond\n");
+                return;
+            }
+            break;
+        case 1:
+           status = u.btiface->cancel_bond(&addr);
+            if (status != BT_STATUS_SUCCESS) {
+                printf("Failed to cancel bond\n");
+                return;
+            }
+            break;
+        case 2:
+           status = u.btiface->remove_bond(&addr);
+            if (status != BT_STATUS_SUCCESS) {
+                printf("Failed to remove bond\n");
+                return;
+            }
+            break;
     }
 }
 

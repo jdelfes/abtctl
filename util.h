@@ -6,4 +6,6 @@
 int bachk(const char *str);
 int str2ba(const char *str, bt_bdaddr_t *ba);
 
+int str_in_list(const char* list[], const char *str);
+
 #endif /* __UTIL_H__ */
