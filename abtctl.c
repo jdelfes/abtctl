@@ -393,6 +393,16 @@ void ssp_request_cb(bt_bdaddr_t *remote_bd_addr, bt_bdname_t *bd_name,
     printf("Pass key: %d\n", pass_key);
 }
 
+void search_complete_cb(int conn_id, int status)
+{
+    printf("Search complete status: %u\n", status);
+}
+
+void search_result_cb(int conn_id, btgatt_srvc_id_t *srvc_id)
+{
+    printf("Search result\n");
+}
+
 static void cmd_connect(char *args) {
 
     bt_status_t status;
@@ -523,6 +533,26 @@ static void cmd_pair(char *args) {
     }
 }
 
+static void cmd_primary(char *args) {
+    int status;
+
+    if (!u.connected) {
+        printf("Not connected\n");
+        return;
+    }
+
+    if (u.gattiface == NULL) {
+        printf("Unable to BLE primary: GATT interface not available\n");
+        return;
+    }
+
+    status = u.gattiface->client->search_service(u.conn_id, NULL);
+    if (status != BT_STATUS_SUCCESS) {
+        printf("Failed to list primary services\n");
+        return;
+    }
+}
+
 /* List of available user commands */
 static const cmd_t cmd_list[] = {
     { "quit", "        Exits", cmd_quit },
@@ -533,6 +563,7 @@ static const cmd_t cmd_list[] = {
     { "connect", "     Create a connection to a remote device", cmd_connect },
     { "pair", "        Pair with remote device", cmd_pair },
     { "disconnect", "  Disconnect from remote device", cmd_disconnect },
+    { "primary", "     List primary services of connected device", cmd_primary },
     { NULL, NULL, NULL }
 };
 
@@ -567,8 +598,8 @@ static const btgatt_client_callbacks_t gattccbs = {
     scan_result_cb, /* called every time an advertising report is seen */
     connect_result_cb, /* connect_callback */
     disconnect_result_cb, /* disconnect_callback */
-    NULL, /* search_complete_callback */
-    NULL, /* search_result_callback */
+    search_complete_cb, /* search_complete_callback */
+    search_result_cb, /* search_result_callback */
     NULL, /* get_characteristic_callback */
     NULL, /* get_descriptor_callback */
     NULL, /* get_included_service_callback */
