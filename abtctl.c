@@ -47,6 +47,7 @@ struct userdata {
     uint8_t scan_state;
     bool registered;
     bool connected;
+    bt_bdaddr_t remote_addr;
     int conn_id;
     int client_if;
 } u;
@@ -377,6 +378,8 @@ disconnect_result_cb(int conn_id, int status, int client_if, bt_bdaddr_t* bda) {
 
     printf("Disconnect!, status: %d, client_if: %d, conn_id: %d\n", status,
                                                             client_if, conn_id);
+
+    u.connected = false;
 }
 
 void ssp_request_cb(bt_bdaddr_t *remote_bd_addr, bt_bdname_t *bd_name,
@@ -394,7 +397,6 @@ static void cmd_connect(char *args) {
 
     bt_status_t status;
     char arg[MAX_LINE_SIZE];
-    bt_bdaddr_t addr;
     int ret;
 
     if (u.gattiface == NULL) {
@@ -409,7 +411,7 @@ static void cmd_connect(char *args) {
 
     line_get_str(&args, arg);
 
-    ret = str2ba(arg, &addr);
+    ret = str2ba(arg, &u.remote_addr);
     if (ret != 0) {
         printf("Unable to connect: Invalid bluetooth address: %s\n", arg);
         return;
@@ -428,9 +430,26 @@ static void cmd_connect(char *args) {
 
     printf("Try connect to: %s\n", arg);
 
-    status = u.gattiface->client->connect(u.client_if, &addr, true);
+    status = u.gattiface->client->connect(u.client_if, &u.remote_addr, true);
     if (status != BT_STATUS_SUCCESS) {
         printf("Failed to connect, status: %d\n", status);
+        return;
+    }
+}
+
+static void cmd_disconnect(char *args)
+{
+    bt_status_t status;
+
+    if (!u.connected) {
+        printf("Device not connected\n");
+        return;
+    }
+
+    status = u.gattiface->client->disconnect(u.client_if, &u.remote_addr,
+                                             u.conn_id);
+    if (status != BT_STATUS_SUCCESS) {
+        printf("Failed to disconnect, status: %d\n", status);
         return;
     }
 }
@@ -513,6 +532,7 @@ static const cmd_t cmd_list[] = {
     { "scan", "        Controls BLE scan of nearby devices", cmd_scan },
     { "connect", "     Create a connection to a remote device", cmd_connect },
     { "pair", "        Pair with remote device", cmd_pair },
+    { "disconnect", "  Disconnect from remote device", cmd_disconnect },
     { NULL, NULL, NULL }
 };
 
