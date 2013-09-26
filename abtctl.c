@@ -592,6 +592,18 @@ static void cmd_pair(char *args) {
     }
 }
 
+static void cmd_devices(char *args)
+{
+    bt_status_t status;
+
+    status = u.btiface->get_adapter_property(
+                                           BT_PROPERTY_ADAPTER_BONDED_DEVICES);
+    if (status != BT_STATUS_SUCCESS) {
+        printf("Failed to list bonded devices\n");
+        return;
+    }
+}
+
 static void cmd_primary(char *args) {
     int status;
 
@@ -622,6 +634,7 @@ static const cmd_t cmd_list[] = {
     { "connect", "     Create a connection to a remote device", cmd_connect },
     { "pair", "        Pair with remote device", cmd_pair },
     { "disconnect", "  Disconnect from remote device", cmd_disconnect },
+    { "devices", "     List bonded devices", cmd_devices },
     { "primary", "     List primary services of connected device", cmd_primary },
     { NULL, NULL, NULL }
 };
